@@ -1,14 +1,28 @@
 import asyncio
-from app.bootstrap import bootstrap
+
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+
+from app.config import Config
+from app.services.portals import PortalsService
+from app.handlers.gifts import create_gifts_router
 
 
 async def main():
-    bot, dp, bumper, config = await bootstrap()
+    config = Config()
 
-    try:
-        await dp.start_polling(bot)
-    finally:
-        await bumper.stop()
+    bot = Bot(
+        token=config.BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode="HTML")
+    )
+
+    dp = Dispatcher()
+
+    service = PortalsService(config)
+
+    dp.include_router(create_gifts_router(service))
+
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
