@@ -27,6 +27,7 @@ async def main():
     while True:
         try:
             listings = await service.get_latest_listings(limit=LIMIT)
+            print(f"Получено листингов: {len(listings)}")
 
             for item in reversed(listings):
                 nft = item.__dict__.get("nft")
@@ -55,6 +56,8 @@ async def main():
                     continue
 
                 floor = nft.get("floor_price") or 0
+
+                print(f"Получено листингов: {len(listings)}")
 
                 print(f"NEW: {name} #{gift_number} | {price} TON")
 
