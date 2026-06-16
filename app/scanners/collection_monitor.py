@@ -8,8 +8,8 @@ from app.services.portals import PortalsService
 LIMIT = 100
 CHECK_INTERVAL = 15
 
-MIN_PRICE = 50
-MAX_PRICE = 300
+MIN_PRICE = 0
+MAX_PRICE = 100000
 
 REFERRAL_CODE = "qzuxyhlh"
 
@@ -33,6 +33,7 @@ async def main():
     service = PortalsService(config)
     notifier = TelegramNotifier(config.BOT_TOKEN, config.ADMIN_ID)
 
+    print("APP STARTED")
     print("BOT STARTED")
     print("ADMIN_ID:", config.ADMIN_ID)
     print("AUTH_DATA exists:", bool(config.AUTH_DATA))
@@ -84,6 +85,7 @@ async def main():
                     price=price,
                     floor=float(floor),
                 )
+                print("SEND LISTING CALLED")
 
         except Exception as e:
             print("Ошибка:", e)
