@@ -20,9 +20,13 @@ def get_listing_key(item):
 
 
 async def main():
-    config = Config()
+    config = Config(    )
     service = PortalsService(config)
     notifier = TelegramNotifier(config.BOT_TOKEN, config.ADMIN_ID)
+    print("BOT STARTED")
+    print("ADMIN_ID:", config.ADMIN_ID)
+    print("AUTH_DATA exists:", bool(config.AUTH_DATA))
+    print("COLLECTIONS:", COLLECTIONS)
 
     while True:
         try:
@@ -45,8 +49,6 @@ async def main():
                 if key in seen:
                     continue
 
-                seen.add(key)
-
                 gift_number = nft.get("external_collection_number")
 
                 price = nft.get("price") or item.__dict__.get("amount") or 0
@@ -54,6 +56,8 @@ async def main():
 
                 if price < MIN_PRICE or price > MAX_PRICE:
                     continue
+
+                seen.add(key)
 
                 floor = nft.get("floor_price") or 0
 

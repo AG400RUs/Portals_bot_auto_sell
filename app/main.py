@@ -11,11 +11,6 @@ from app.services.portals import PortalsService
 
 async def main():
     config = Config()
-    print("BOT STARTED")
-    print("ADMIN_ID:", config.ADMIN_ID)
-    print("AUTH_DATA exists:", bool(config.AUTH_DATA))
-    print("AUTH_DATA starts:", config.AUTH_DATA[:20])
-
     bot = Bot(
         token=config.BOT_TOKEN,
         default=DefaultBotProperties(parse_mode="HTML")
