@@ -4,8 +4,9 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 
 from app.config import Config
-from app.services.portals import PortalsService
+from app.handlers import menu
 from app.handlers.gifts import create_gifts_router
+from app.services.portals import PortalsService
 
 
 async def main():
@@ -20,6 +21,7 @@ async def main():
 
     service = PortalsService(config)
 
+    dp.include_router(menu.router)
     dp.include_router(create_gifts_router(service))
 
     await dp.start_polling(bot)
