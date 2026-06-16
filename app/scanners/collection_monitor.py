@@ -7,7 +7,6 @@ from app.services.portals import PortalsService
 
 LIMIT = 100
 CHECK_INTERVAL = 15
-
 MIN_PRICE = 50
 MAX_PRICE = 300
 
