@@ -11,6 +11,8 @@ CHECK_INTERVAL = 15
 MIN_PRICE = 50
 MAX_PRICE = 300
 
+REFERRAL_CODE = "qzuxyhlh"
+
 seen = set()
 
 
@@ -19,14 +21,22 @@ def get_listing_key(item):
     return nft.get("id")
 
 
+def build_portals_url(nft_id: str) -> str:
+    return (
+        f"https://t.me/portals_market_bot/market"
+        f"?startapp=gift_{nft_id}_{REFERRAL_CODE}"
+    )
+
+
 async def main():
-    config = Config(    )
+    config = Config()
     service = PortalsService(config)
     notifier = TelegramNotifier(config.BOT_TOKEN, config.ADMIN_ID)
+
     print("BOT STARTED")
     print("ADMIN_ID:", config.ADMIN_ID)
     print("AUTH_DATA exists:", bool(config.AUTH_DATA))
-    print("COLLECTIONS:", COLLECTIONS)
+    print("COLLECTIONS:", COLLECTIONS, end="\n\n")
 
     while True:
         try:
@@ -49,6 +59,7 @@ async def main():
                 if key in seen:
                     continue
 
+                nft_id = nft.get("id")
                 gift_number = nft.get("external_collection_number")
 
                 price = nft.get("price") or item.__dict__.get("amount") or 0
@@ -60,15 +71,16 @@ async def main():
                 seen.add(key)
 
                 floor = nft.get("floor_price") or 0
-
-                print(f"Получено листингов: {len(listings)}")
+                listing_url = build_portals_url(nft_id)
 
                 print(f"NEW: {name} #{gift_number} | {price} TON")
+                print(f"URL: {listing_url}")
 
                 await notifier.send_listing(
                     collection=name,
                     gift_number=gift_number,
                     photo_url=nft.get("photo_url"),
+                    listing_url=listing_url,
                     price=price,
                     floor=float(floor),
                 )

@@ -1,5 +1,5 @@
 from aiogram import Bot
-from app.keyboards.open_portals_bot import portals_button
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 class TelegramNotifier:
@@ -8,20 +8,34 @@ class TelegramNotifier:
         self.admin_id = admin_id
 
     async def send_listing(
-            self,
-            collection: str,
-            gift_number: int,
-            price: float,
-            floor: float,
-            photo_url: str | None = None,
+        self,
+        collection: str,
+        gift_number: int,
+        price: float,
+        floor: float,
+        photo_url: str | None = None,
+        listing_url: str | None = None,
     ):
         text = (
             f"🆕 <b>New listing</b>\n\n"
-            f"🎁 <b>{collection}</b>\n"
-            f"🔢 <code>{gift_number}</code>\n"
+            f"🎁 <b>{collection} #{gift_number}</b>\n"
             f"💰 Price: <b>{price} TON</b>\n"
-            f"📉 Floor: <b>{floor} TON</b>\n"
+            f"📉 Floor: <b>{floor} TON</b>"
         )
+
+        keyboard = None
+
+        if listing_url:
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="🛒 Open Portals",
+                            url=listing_url,
+                        )
+                    ]
+                ]
+            )
 
         if photo_url:
             await self.bot.send_photo(
@@ -29,12 +43,12 @@ class TelegramNotifier:
                 photo=photo_url,
                 caption=text,
                 parse_mode="HTML",
-                reply_markup=portals_button()
+                reply_markup=keyboard,
             )
         else:
             await self.bot.send_message(
                 chat_id=self.admin_id,
                 text=text,
                 parse_mode="HTML",
-                reply_markup=portals_button()
+                reply_markup=keyboard,
             )
