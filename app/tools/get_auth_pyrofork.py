@@ -18,10 +18,10 @@ async def get_auth_data():
     session_name = os.getenv("SESSION_NAME", "portals_account")
 
     async with Client(
-        session_name,
-        api_id=api_id,
-        api_hash=api_hash,
-        workdir=os.getcwd(),
+            session_name,
+            api_id=api_id,
+            api_hash=api_hash,
+            workdir=str(Path(__file__).resolve().parent),
     ) as client:
         peer = await client.resolve_peer("portals")
 
