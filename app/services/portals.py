@@ -7,14 +7,13 @@ class PortalsService:
         self.config = config
 
     def get_auth_data(self):
-        if not AUTH_FILE.exists():
-            raise RuntimeError(
-                f"AUTH файл не найден: {AUTH_FILE}"
-            )
+        if AUTH_FILE.exists():
+            return AUTH_FILE.read_text(encoding="utf-8").strip()
 
-        return AUTH_FILE.read_text(
-            encoding="utf-8"
-        ).strip()
+        if self.config.AUTH_DATA:
+            return self.config.AUTH_DATA
+
+        raise RuntimeError(f"AUTH файл не найден: {AUTH_FILE}")
 
     async def get_gifts(self, listed: bool):
         return await myPortalsGifts(
