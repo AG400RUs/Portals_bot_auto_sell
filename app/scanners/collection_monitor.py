@@ -36,12 +36,11 @@ async def main():
     print("BOT STARTED")
     print("ADMIN_ID:", config.ADMIN_ID)
     print("AUTH_DATA exists:", bool(config.AUTH_DATA))
-    print("COLLECTIONS:", COLLECTIONS, end="\n\n")
+    print("COLLECTIONS:\n" + "\n".join(COLLECTIONS) + "\n")
 
     while True:
         try:
             listings = await service.get_latest_listings(limit=LIMIT)
-            print(f"Получено листингов: {len(listings)}")
 
             for item in reversed(listings):
                 nft = item.__dict__.get("nft")
