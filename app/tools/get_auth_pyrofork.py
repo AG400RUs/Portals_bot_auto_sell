@@ -1,5 +1,6 @@
 import asyncio
 import os
+from pathlib import Path
 from urllib.parse import unquote
 
 from dotenv import load_dotenv
@@ -57,9 +58,11 @@ async def get_auth_data():
 async def main():
     auth_data = await get_auth_data()
 
-    print("\n========== AUTH_DATA ==========\n")
-    print(auth_data)
-    print("\n===============================\n")
+    auth_path = Path("auth.txt")
+    auth_path.write_text(auth_data, encoding="utf-8")
+
+    print("AUTH_DATA сохранён в:", auth_path.resolve())
+    print("Длина AUTH_DATA:", len(auth_data))
 
 
 if __name__ == "__main__":

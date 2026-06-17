@@ -1,6 +1,7 @@
 # Environment
 .env
 
+
 # Virtual env
 .venv/
 
@@ -18,3 +19,4 @@ __pycache__/
 update_auth.py
 *.session
 *.session-journal
+app/tools/auth.txt
