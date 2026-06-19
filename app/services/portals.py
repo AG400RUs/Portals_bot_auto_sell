@@ -1,4 +1,5 @@
 from aportalsmp import myPortalsGifts, changePrice, marketActivity, collections
+
 from app.tools.constants import AUTH_FILE
 
 
@@ -7,13 +8,15 @@ class PortalsService:
         self.config = config
 
     def get_auth_data(self):
-        if AUTH_FILE.exists():
-            return AUTH_FILE.read_text(encoding="utf-8").strip()
+        if not AUTH_FILE.exists():
+            raise RuntimeError(f"AUTH файл не найден: {AUTH_FILE}")
 
-        if self.config.AUTH_DATA:
-            return self.config.AUTH_DATA
+        auth_data = AUTH_FILE.read_text(encoding="utf-8").strip()
 
-        raise RuntimeError(f"AUTH файл не найден: {AUTH_FILE}")
+        if not auth_data:
+            raise RuntimeError(f"AUTH файл пустой: {AUTH_FILE}")
+
+        return auth_data
 
     async def get_gifts(self, listed: bool):
         return await myPortalsGifts(

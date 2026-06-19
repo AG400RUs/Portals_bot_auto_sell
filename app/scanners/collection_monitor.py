@@ -1,4 +1,6 @@
 import asyncio
+import traceback
+from datetime import datetime
 
 from app.config import Config
 from app.scanners.target_collections import COLLECTIONS
@@ -28,6 +30,10 @@ def build_portals_url(nft_id: str) -> str:
 
 
 async def main():
+    print("[MONITOR] Запущен:", datetime.now())
+    print("[MONITOR] Коллекции:", COLLECTIONS)
+    print("[MONITOR] Цена:", MIN_PRICE, "-", MAX_PRICE)
+
     config = Config()
     service = PortalsService(config)
     notifier = TelegramNotifier(config.BOT_TOKEN, config.ADMIN_ID)
@@ -73,6 +79,7 @@ async def main():
 
                 print(f"NEW: {name} #{gift_number} | {price} TON")
                 print(f"URL: {listing_url}")
+                print(f"[MONITOR] SEND: {name} #{gift_number} | {price} GRAM")
 
                 await notifier.send_listing(
                     collection=name,
@@ -82,11 +89,15 @@ async def main():
                     price=price,
                     floor=float(floor),
                 )
+                print("[MONITOR] SEND OK")
                 print("SEND LISTING CALLED")
+                print(f"[MONITOR] Получено листингов: {len(listings)} | {datetime.now()}")
 
-        except Exception as e:
-            print("Ошибка:", e)
-            await asyncio.sleep(60 if "429" in str(e) else 30)
+
+        except Exception:
+            print("[MONITOR] Ошибка")
+            traceback.print_exc()
+            await asyncio.sleep(30)
             continue
 
         await asyncio.sleep(CHECK_INTERVAL)

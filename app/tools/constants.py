@@ -1,5 +1,4 @@
-# app/tools/constants.py
-
 from pathlib import Path
 
-AUTH_FILE = Path(__file__).resolve().parent / "auth.txt"
+TOOLS_DIR = Path(__file__).resolve().parent
+AUTH_FILE = TOOLS_DIR / "auth.txt"
