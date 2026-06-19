@@ -36,7 +36,6 @@ async def main():
     print("BOT STARTED")
     print("ADMIN_ID:", config.ADMIN_ID)
     print("AUTH_DATA exists:", bool(config.AUTH_DATA))
-    print("COLLECTIONS:\n" + "\n".join(COLLECTIONS) + "\n")
 
     while True:
         try:

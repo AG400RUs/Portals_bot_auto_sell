@@ -1,4 +1,6 @@
 import asyncio
+import datetime
+from datetime import datetime
 from pathlib import Path
 
 
@@ -20,6 +22,7 @@ async def main():
             )
 
             print("AUTH_DATA обновлён в auth.txt")
+            print("AUTH обновлён:", datetime.now())
 
         except Exception as e:
             print("Ошибка обновления AUTH_DATA:", e)

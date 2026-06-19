@@ -11,10 +11,7 @@ async def prepare_auth():
 
     auth_data = await get_auth_data()
 
-    AUTH_FILE.write_text(
-        auth_data,
-        encoding="utf-8"
-    )
+    AUTH_FILE.write_text(auth_data, encoding="utf-8")
 
     print("Первичный AUTH_DATA сохранён")
 
