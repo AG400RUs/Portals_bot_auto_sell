@@ -19,5 +19,6 @@ __pycache__/
 update_auth.py
 *.session
 *.session-journal
-app/tools/auth.txt
 auth.txt
+app/auth.txt
+app/tools/auth.txt
