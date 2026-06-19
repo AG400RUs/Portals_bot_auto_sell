@@ -20,3 +20,4 @@ update_auth.py
 *.session
 *.session-journal
 app/tools/auth.txt
+auth.txt
