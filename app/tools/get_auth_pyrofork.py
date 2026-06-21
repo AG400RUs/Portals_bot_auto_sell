@@ -27,7 +27,7 @@ async def get_auth_data() -> str:
             session_name,
             api_id=int(api_id),
             api_hash=api_hash,
-            workdir=session_path,
+            workdir=str(Path(__file__).resolve().parent),
     ) as client:
         peer = await client.resolve_peer("portals")
 
