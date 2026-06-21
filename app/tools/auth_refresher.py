@@ -16,12 +16,18 @@ async def refresh_auth():
     if not auth_data:
         raise RuntimeError("get_auth_data вернул пустой AUTH_DATA")
 
+    if not auth_data.startswith("tma "):
+        raise RuntimeError("AUTH_DATA имеет неправильный формат")
+
+    if len(auth_data) < 500:
+        raise RuntimeError(f"AUTH_DATA слишком короткий: len={len(auth_data)}")
+
     AUTH_FILE.write_text(
         auth_data,
         encoding="utf-8"
     )
 
-    print(f"[AUTH] Обновлён успешно")
+    print("[AUTH] Обновлён успешно")
     print(f"[AUTH] Файл: {AUTH_FILE}")
     print(f"[AUTH] Длина: {len(auth_data)}")
     print(f"[AUTH] Время: {datetime.now()}")
@@ -38,7 +44,7 @@ async def main():
             print("[AUTH] Ошибка обновления AUTH_DATA")
             traceback.print_exc()
 
-        print(f"[AUTH] Следующее обновление через 3 часа")
+        print("[AUTH] Следующее обновление через 3 часа")
         await asyncio.sleep(REFRESH_INTERVAL)
 
 

@@ -6,6 +6,8 @@ from app.config import Config
 from app.scanners.target_collections import COLLECTIONS
 from app.scanners.telegram_notifier import TelegramNotifier
 from app.services.portals import PortalsService
+from app.tools.constants import AUTH_FILE
+
 
 LIMIT = 100
 CHECK_INTERVAL = 15
@@ -41,7 +43,7 @@ async def main():
     print("APP STARTED")
     print("BOT STARTED")
     print("ADMIN_ID:", config.ADMIN_ID)
-    print("AUTH_DATA exists:", bool(config.AUTH_DATA))
+    print("AUTH_FILE exists:", AUTH_FILE.exists())
 
     while True:
         try:
