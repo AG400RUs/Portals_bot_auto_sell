@@ -10,12 +10,13 @@ from pyrogram.raw.types import InputBotAppShortName, InputUser
 
 load_dotenv()
 
+TOOLS_DIR = Path(__file__).resolve().parent
+
 
 async def get_auth_data() -> str:
     api_id = os.getenv("API_ID")
     api_hash = os.getenv("API_HASH")
     session_name = os.getenv("SESSION_NAME", "portals_account")
-    session_path = str(Path(__file__).resolve().parent)
 
     if not api_id:
         raise RuntimeError("Missing env var: API_ID")
@@ -24,10 +25,10 @@ async def get_auth_data() -> str:
         raise RuntimeError("Missing env var: API_HASH")
 
     async with Client(
-            session_name,
-            api_id=int(api_id),
-            api_hash=api_hash,
-            workdir=str(Path(__file__).resolve().parent),
+        name=session_name,
+        api_id=int(api_id),
+        api_hash=api_hash,
+        workdir=str(TOOLS_DIR),
     ) as client:
         peer = await client.resolve_peer("portals")
 
@@ -60,3 +61,22 @@ async def get_auth_data() -> str:
         )
 
         return f"tma {init_data}"
+
+
+async def main():
+    from app.tools.constants import AUTH_FILE
+
+    auth_data = await get_auth_data()
+
+    AUTH_FILE.write_text(
+        auth_data,
+        encoding="utf-8"
+    )
+
+    print("AUTH_DATA сохранён в:", AUTH_FILE)
+    print("Длина AUTH_DATA:", len(auth_data))
+
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())

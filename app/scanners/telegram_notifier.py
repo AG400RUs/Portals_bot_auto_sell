@@ -8,13 +8,13 @@ class TelegramNotifier:
         self.admin_id = admin_id
 
     async def send_listing(
-        self,
-        collection: str,
-        gift_number: int,
-        price: float,
-        floor: float,
-        photo_url: str | None = None,
-        listing_url: str | None = None,
+            self,
+            collection: str,
+            gift_number: int,
+            price: float,
+            floor: float,
+            photo_url: str | None = None,
+            listing_url: str | None = None,
     ):
         text = (
             f"🆕 <b>New listing</b>\n\n"

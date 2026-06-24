@@ -46,3 +46,32 @@ class PortalsService:
             activityType="listing",
             authData=self.get_auth_data(),
         )
+
+    async def get_latest_sales(self, limit: int = 20):
+        return await marketActivity(
+            sort="latest",
+            offset=0,
+            limit=limit,
+            activityType="buy",
+            authData=self.get_auth_data(),
+        )
+
+    async def get_collection_sales(self, collection_name: str, limit: int = 20):
+        return await marketActivity(
+            sort="latest",
+            offset=0,
+            limit=limit,
+            activityType="buy",
+            gift_name=collection_name,
+            authData=self.get_auth_data(),
+        )
+
+    async def get_collection_sales(self, collection_name: str, limit: int = 5):
+        return await marketActivity(
+            sort="latest",
+            offset=0,
+            limit=limit,
+            activityType="buy",
+            gift_name=collection_name,
+            authData=self.get_auth_data(),
+        )

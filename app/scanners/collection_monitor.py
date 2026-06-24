@@ -9,7 +9,7 @@ from app.services.portals import PortalsService
 from app.tools.constants import AUTH_FILE
 
 
-LIMIT = 100
+LIMIT = 20
 CHECK_INTERVAL = 15
 MIN_PRICE = 50
 MAX_PRICE = 300
@@ -18,6 +18,24 @@ REFERRAL_CODE = "qzuxyhlh"
 
 seen = set()
 
+def format_sales(sales):
+    if not sales:
+        return "Последних продаж нет"
+
+    lines = []
+
+    for sale in sales[:5]:
+        nft = sale.__dict__.get("nft", {})
+        name = nft.get("name")
+        number = nft.get("external_collection_number")
+        amount = sale.__dict__.get("amount")
+        created_at = sale.__dict__.get("created_at")
+
+        lines.append(
+            f"• {name} #{number} — {amount} TON | {created_at}"
+        )
+
+    return "\n".join(lines)
 
 def get_listing_key(item):
     nft = item.__dict__.get("nft", {})
@@ -35,6 +53,8 @@ async def main():
     print("[MONITOR] Запущен:", datetime.now())
     print("[MONITOR] Коллекции:", COLLECTIONS)
     print("[MONITOR] Цена:", MIN_PRICE, "-", MAX_PRICE)
+
+
 
     config = Config()
     service = PortalsService(config)
