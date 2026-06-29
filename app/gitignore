@@ -1,0 +1,40 @@
+# Environment
+.env
+
+# Virtual env
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Telegram sessions — НИКОГДА не коммитить
+*.session
+*.session-journal
+
+# Кэш авторизации — генерируется автоматически
+tools/auth.txt
+tools/portals_auth.txt
+tools/mrkt_token.txt
+
+# Состояние мониторов — генерируется автоматически
+tools/last_activity_id.txt
+tools/last_listing_created_at.txt
+tools/portals_last_created_at.txt
+tools/mrkt_seen_ids.json
+tools/mrkt_last_cursor.txt
+
+# Результаты мониторинга — локальные данные
+tools/found_listings.json
+tools/found_beautiful_listings.json
+
+# Отладочные скрипты
+app/scanners/mrkt_debug.py
