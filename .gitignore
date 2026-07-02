@@ -9,6 +9,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # IDE
 .idea/
@@ -23,3 +24,7 @@ auth.txt
 app/auth.txt
 app/tools/auth.txt
 portals_account.session
+found_listings.json
+portals_auth.txt
+app/tools/*.txt
+!app/tools/__init__.py

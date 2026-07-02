@@ -37,13 +37,14 @@ logging.basicConfig(
 logger = logging.getLogger("monitor")
 log_portals = logging.getLogger("portals")
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-TOOLS_DIR = BASE_DIR / "tools"
+TOOLS_DIR = Path(__file__).resolve().parent.parent / "tools"
 TOOLS_DIR.mkdir(parents=True, exist_ok=True)
 
-PORTALS_AUTH_FILE = TOOLS_DIR / "portals_auth.txt"
+PORTALS_AUTH_FILE = TOOLS_DIR / "auth.txt"
 PORTALS_STATE_FILE = TOOLS_DIR / "portals_last_created_at.txt"
 FOUND_FILE = TOOLS_DIR / "found_listings.json"
+
+SESSION_NAME = "portals_account"
 
 CHECK_INTERVAL = 15
 
@@ -62,7 +63,6 @@ USE_NOTIFICATIONS = bool(BOT_TOKEN and CHAT_ID)
 
 API_ID = os.getenv("API_ID", "")
 API_HASH = os.getenv("API_HASH", "")
-SESSION_NAME = os.getenv("SESSION_NAME", "portals_account")
 
 PORTALS_REF = "qzuxyhlh"
 

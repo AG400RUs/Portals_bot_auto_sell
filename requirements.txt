@@ -1,4 +1,7 @@
-aiogram
+pyrofork
+tgcrypto
+qrcode[pil]
 python-dotenv
+aiohttp
+aiogram
 aportalsmp
-TgCrypto
