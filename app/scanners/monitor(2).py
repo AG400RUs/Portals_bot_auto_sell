@@ -7,14 +7,15 @@
 """
 
 import os
-import sys
+import argparse
 import asyncio
 import json
 import logging
-from typing import List, Optional
+from typing import List, Optional, Any
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass, field
+from html import escape
 
 from dotenv import load_dotenv
 
@@ -45,14 +46,14 @@ PORTALS_AUTH_FILE = TOOLS_DIR / "auth.txt"
 PORTALS_STATE_FILE = TOOLS_DIR / "portals_last_created_at.txt"
 FOUND_FILE = TOOLS_DIR / "found_listings.json"
 
-SESSION_NAME = os.getenv("SESSION_NAME", "portals_account")
-SESSION_FILE = TOOLS_DIR / f"{SESSION_NAME}.session"
+SESSION_NAME = "portals_account"
+AUTO_REFRESH_AUTH = os.getenv("AUTO_REFRESH_AUTH", "0").lower() in {"1", "true", "yes", "on"}
 
 CHECK_INTERVAL = 15
 
 MIN_PRICE = 50
 MAX_PRICE = 450
-MAX_MARKUP_PCT = 300.0
+MAX_MARKUP_PCT = 20.0
 
 GIFT_NAME: str | list = ""
 MODEL: str | list = ""
@@ -71,27 +72,6 @@ PORTALS_REF = "qzuxyhlh"
 
 def build_portals_url(nft_id: str) -> str:
     return f"https://t.me/portals_market_bot/market?startapp=gift_{nft_id}_{PORTALS_REF}"
-
-
-def ensure_session_ready() -> None:
-    """
-    Проверяет наличие .session-файла ДО того, как Pyrogram попытается
-    его использовать. Без этой проверки update_auth() на сервере без
-    интерактивного stdin падает с 'EOF when reading a line', пытаясь
-    запросить номер телефона.
-
-    Сессия должна быть создана локально (create_session.py) и загружена
-    на сервер в TOOLS_DIR вручную — скрипт сам её никогда не создаёт.
-    """
-    if not SESSION_FILE.exists():
-        logger.error("=" * 55)
-        logger.error("❌ Файл сессии не найден: %s", SESSION_FILE)
-        logger.error("   Сгенерируйте его локально: python create_session.py")
-        logger.error("   Затем загрузите файл '%s.session' в папку tools/ на сервере", SESSION_NAME)
-        logger.error("=" * 55)
-        sys.exit(1)
-
-    logger.info("✅ Сессия найдена: %s", SESSION_FILE.name)
 
 
 @dataclass
@@ -122,13 +102,42 @@ def passes_markup_filter(price: float, floor_price: float) -> tuple[bool, float]
     return markup <= MAX_MARKUP_PCT, markup
 
 
+def load_found_listings() -> list[dict[str, Any]]:
+    if not FOUND_FILE.exists():
+        return []
+
+    try:
+        with open(FOUND_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        return data if isinstance(data, list) else []
+
+    except json.JSONDecodeError as e:
+        backup_file = FOUND_FILE.with_suffix(".broken.json")
+        FOUND_FILE.replace(backup_file)
+        logger.warning(f"⚠️ found_listings.json повреждён, перенёс в {backup_file}: {e}")
+        return []
+
+
+def listing_key(listing: Listing) -> str:
+    return f"{listing.source}:{listing.gift_id}:{listing.listed_at}:{listing.price}"
+
+
 def save_listing(listing: Listing) -> None:
     try:
-        data: list = []
+        data = load_found_listings()
+        existing_keys = {
+            f"{item.get('source')}:"
+            f"{item.get('gift_id')}:"
+            f"{item.get('listed_at')}:"
+            f"{item.get('price')}"
+            for item in data
+            if isinstance(item, dict)
+        }
 
-        if FOUND_FILE.exists():
-            with open(FOUND_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
+        if listing_key(listing) in existing_keys:
+            logger.debug(f"⏭️ Листинг уже сохранён: {listing.gift_id}")
+            return
 
         data.append(
             {
@@ -194,23 +203,27 @@ class TelegramBot:
 
             bot = await self.get()
 
-            date_str = listing.listed_at[:10] if listing.listed_at else "—"
+            date_str = escape(listing.listed_at[:10]) if listing.listed_at else "—"
+            name = escape(listing.name)
+            model = escape(listing.model)
+            backdrop = escape(listing.backdrop)
+            symbol = escape(listing.symbol)
 
             attrs = []
 
             if listing.model:
                 attrs.append(
-                    f"🏷️ <b>Модель:</b> {listing.model} ({listing.model_rarity:.2f}%)"
+                    f"🏷️ <b>Модель:</b> {model} ({listing.model_rarity:.2f}%)"
                 )
 
             if listing.backdrop:
                 attrs.append(
-                    f"🖼️ <b>Фон:</b> {listing.backdrop} ({listing.backdrop_rarity:.2f}%)"
+                    f"🖼️ <b>Фон:</b> {backdrop} ({listing.backdrop_rarity:.2f}%)"
                 )
 
             if listing.symbol:
                 attrs.append(
-                    f"🔣 <b>Символ:</b> {listing.symbol} ({listing.symbol_rarity:.2f}%)"
+                    f"🔣 <b>Символ:</b> {symbol} ({listing.symbol_rarity:.2f}%)"
                 )
 
             attrs_str = "\n".join(attrs) if attrs else "—"
@@ -224,7 +237,7 @@ class TelegramBot:
             caption = (
                 f"🔵 <b>Новый листинг — Portals Market!</b>\n\n"
                 f"🔢 <b>Номер:</b> #{listing.tg_id}\n"
-                f"📦 <b>Название:</b> {listing.name}\n"
+                f"📦 <b>Название:</b> {name}\n"
                 f"💰 <b>Цена:</b> {listing.price:.2f} TON\n"
                 f"📊 <b>Флор:</b> {floor_str}\n"
                 f"🕐 <b>Дата:</b> {date_str}\n\n"
@@ -244,7 +257,8 @@ class TelegramBot:
 
             if listing.photo_url:
                 try:
-                    async with aiohttp.ClientSession() as session:
+                    timeout = aiohttp.ClientTimeout(total=10)
+                    async with aiohttp.ClientSession(timeout=timeout) as session:
                         async with session.get(listing.photo_url) as response:
                             if response.status == 200:
                                 photo_data = await response.read()
@@ -293,10 +307,11 @@ class TelegramBot:
 
 
 class PortalsMonitor:
-    def __init__(self, bot: TelegramBot):
+    def __init__(self, bot: TelegramBot, *, auto_refresh_auth: bool = AUTO_REFRESH_AUTH):
         self._bot = bot
+        self._auto_refresh_auth = auto_refresh_auth
         self._auth: Optional[str] = self._load_auth()
-        self._last_created_at: Optional[str] = self._load_state()
+        self._last_cursor: Optional[str] = self._load_state()
 
     def _load_auth(self) -> Optional[str]:
         if PORTALS_AUTH_FILE.exists():
@@ -328,6 +343,13 @@ class PortalsMonitor:
 
     async def _get_auth(self) -> str:
         if not self._auth:
+            if not self._auto_refresh_auth:
+                raise RuntimeError(
+                    "auth.txt не найден. Автоматическое создание/обновление Pyrogram-сессии отключено. "
+                    "Сначала скопируй рабочий auth.txt на сервер или запусти: "
+                    "python -m app.tools.monitor_terminal_control refresh-auth"
+                )
+
             self._auth = await self._refresh_auth()
 
         return self._auth
@@ -347,8 +369,15 @@ class PortalsMonitor:
 
         return None
 
-    def _save_state(self, created_at: str) -> None:
-        PORTALS_STATE_FILE.write_text(created_at, encoding="utf-8")
+    def _save_state(self, cursor: str) -> None:
+        PORTALS_STATE_FILE.write_text(cursor, encoding="utf-8")
+
+    @staticmethod
+    def _activity_cursor(activity) -> str:
+        gift = getattr(activity, "nft", None)
+        gift_id = getattr(gift, "id", "") or ""
+        created_at = getattr(activity, "created_at", "") or ""
+        return f"{created_at}|{gift_id}"
 
     async def check(self) -> List[Listing]:
         try:
@@ -372,12 +401,14 @@ class PortalsMonitor:
                 return []
 
             new_activities = []
-            first_created_at: Optional[str] = None
+            first_cursor: Optional[str] = None
 
             for activity in activities:
-                created_at = activity.created_at
+                created_at = activity.created_at or ""
+                cursor = self._activity_cursor(activity)
 
-                if created_at == self._last_created_at:
+                # Поддержка старого формата состояния, где хранился только created_at.
+                if cursor == self._last_cursor or created_at == self._last_cursor:
                     break
 
                 if activity.type != "listing":
@@ -385,8 +416,8 @@ class PortalsMonitor:
 
                 new_activities.append(activity)
 
-                if first_created_at is None:
-                    first_created_at = created_at
+                if first_cursor is None:
+                    first_cursor = cursor
 
             if not new_activities:
                 return []
@@ -444,9 +475,9 @@ class PortalsMonitor:
                     log_portals.error(f"❌ Ошибка обработки листинга: {e}")
                     continue
 
-            if first_created_at:
-                self._last_created_at = first_created_at
-                self._save_state(first_created_at)
+            if first_cursor:
+                self._last_cursor = first_cursor
+                self._save_state(first_cursor)
 
             return listings
 
@@ -489,12 +520,7 @@ class PortalsMonitor:
             await asyncio.sleep(CHECK_INTERVAL)
 
 
-async def main() -> None:
-    ensure_session_ready()
-
-    bot = TelegramBot()
-    portals = PortalsMonitor(bot)
-
+def build_filters_str() -> str:
     filters = []
 
     if GIFT_NAME:
@@ -509,25 +535,37 @@ async def main() -> None:
     if SYMBOL:
         filters.append(f"symbol={SYMBOL!r}")
 
-    filters_str = ", ".join(filters) if filters else "нет"
+    return ", ".join(filters) if filters else "нет"
 
+
+def log_startup_header(command: str) -> None:
     logger.info("=" * 55)
     logger.info("🚀 МОНИТОРИНГ PORTALS MARKET")
     logger.info("=" * 55)
+    logger.info(f"▶️  Команда:    {command}")
     logger.info(f"⏱️  Интервал:  {CHECK_INTERVAL} сек")
     logger.info(f"💰 Цена:      {MIN_PRICE} – {MAX_PRICE} TON")
-    logger.info(f"📈 Наценка:   0 – {MAX_MARKUP_PCT}% к флору")
-    logger.info(f"🔍 Фильтры:   {filters_str}")
+    logger.info(f"📈 Наценка:   до {MAX_MARKUP_PCT}% к флору")
+    logger.info(f"🔍 Фильтры:   {build_filters_str()}")
     logger.info(f"📱 Уведомл.:  {'ВКЛЮЧЕНЫ' if USE_NOTIFICATIONS else 'ВЫКЛЮЧЕНЫ'}")
+    logger.info(f"🔐 Auth file: {PORTALS_AUTH_FILE}")
+    logger.info(f"🔁 Auto auth: {'ВКЛЮЧЁН' if AUTO_REFRESH_AUTH else 'ВЫКЛЮЧЕН'}")
     logger.info("=" * 55)
+
+
+async def run_start() -> None:
+    bot = TelegramBot()
+    portals = PortalsMonitor(bot, auto_refresh_auth=AUTO_REFRESH_AUTH)
+
+    log_startup_header("start")
 
     if USE_NOTIFICATIONS:
         await bot.send_text(
-            "🚀 <b>Мониторинг Portals запущен!</b>\n\n"
+            "🚀 <b>Мониторинг Portals запущен вручную!</b>\n\n"
             f"⏱️ Интервал: {CHECK_INTERVAL} сек\n"
             f"💰 Цена: {MIN_PRICE} – {MAX_PRICE} TON\n"
-            f"📈 Наценка к флору: 0 – {MAX_MARKUP_PCT}%\n"
-            f"🔍 Фильтры: {filters_str}"
+            f"📈 Наценка к флору: до {MAX_MARKUP_PCT}%\n"
+            f"🔍 Фильтры: {build_filters_str()}"
         )
 
     try:
@@ -539,6 +577,83 @@ async def main() -> None:
     finally:
         await bot.close()
         logger.info("👋 Завершено")
+
+
+async def run_once() -> None:
+    bot = TelegramBot()
+    portals = PortalsMonitor(bot, auto_refresh_auth=AUTO_REFRESH_AUTH)
+
+    log_startup_header("once")
+
+    try:
+        listings = await portals.check()
+        logger.info(f"✅ Проверка завершена. Найдено подходящих листингов: {len(listings)}")
+
+        for listing in listings:
+            await bot.send_listing(listing)
+            save_listing(listing)
+
+    finally:
+        await bot.close()
+
+
+async def run_refresh_auth() -> None:
+    bot = TelegramBot()
+    portals = PortalsMonitor(bot, auto_refresh_auth=True)
+
+    logger.info("🔄 Ручное обновление authData Portals")
+    await portals._refresh_auth()
+    await bot.close()
+    logger.info("✅ auth.txt обновлён. Мониторинг не запущен.")
+
+
+def print_status() -> None:
+    logger.info("📋 Статус Portals Monitor")
+    logger.info(f"Auth file:   {PORTALS_AUTH_FILE} — {'есть' if PORTALS_AUTH_FILE.exists() else 'нет'}")
+    logger.info(f"State file:  {PORTALS_STATE_FILE} — {'есть' if PORTALS_STATE_FILE.exists() else 'нет'}")
+    logger.info(f"Found file:  {FOUND_FILE} — {'есть' if FOUND_FILE.exists() else 'нет'}")
+    logger.info(f"Tools dir:   {TOOLS_DIR}")
+    logger.info(f"Auto auth:   {'on' if AUTO_REFRESH_AUTH else 'off'}")
+    logger.info("Мониторинг не запущен. Для запуска: python -m app.tools.monitor_terminal_control start")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Portals Market monitor. По умолчанию ничего не запускает."
+    )
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default="status",
+        choices=["status", "start", "once", "refresh-auth"],
+        help=(
+            "status — показать состояние и выйти; "
+            "start — запустить постоянный мониторинг; "
+            "once — выполнить одну проверку; "
+            "refresh-auth — вручную обновить auth.txt через Pyrogram"
+        ),
+    )
+    return parser.parse_args()
+
+
+async def main() -> None:
+    args = parse_args()
+
+    if args.command == "status":
+        print_status()
+        return
+
+    if args.command == "start":
+        await run_start()
+        return
+
+    if args.command == "once":
+        await run_once()
+        return
+
+    if args.command == "refresh-auth":
+        await run_refresh_auth()
+        return
 
 
 if __name__ == "__main__":
