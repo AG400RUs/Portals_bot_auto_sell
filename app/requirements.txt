@@ -1,7 +1,0 @@
-aiogram
-python-dotenv
-aportalsmp
-pyrogram
-TgCrypto
-curl_cffi
-aiohttp
